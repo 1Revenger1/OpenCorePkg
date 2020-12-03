@@ -369,6 +369,15 @@ OcDeleteVariables (
     } else {
       BootProtect = 0;
     }
+  } else {
+    Status = GetVariable2 (L"Boot0000", &gEfiGlobalVariableGuid, &BootOption, &BootOptionSize);
+    if (!EFI_ERROR (Status)) {
+      DEBUG ((
+        DEBUG_INFO,
+        "OCB: Found Boot0000 of %u bytes\n",
+        (UINT32) BootOptionSize
+        ));
+    }
   }
 
   DeleteVariables ();
@@ -393,6 +402,27 @@ OcDeleteVariables (
     }
 
     DEBUG ((DEBUG_INFO, "OCB: Set bootstrap option to Boot%04x - %r\n", BootOptionIndex, Status));
+    FreePool (BootOption);
+  } else if (BootOption != NULL) {
+    BootOptionIndex = 0;
+    Status = gRT->SetVariable (
+      L"Boot0000",
+      &gEfiGlobalVariableGuid,
+      EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+      BootOptionSize,
+      BootOption
+      );
+    if (!EFI_ERROR (Status)) {
+      Status = gRT->SetVariable (
+        EFI_BOOT_ORDER_VARIABLE_NAME,
+        &gEfiGlobalVariableGuid,
+        EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+        sizeof (BootOptionIndex),
+        &BootOptionIndex
+        );
+    }
+
+    DEBUG ((DEBUG_INFO, "OCB: Set reserved option to Boot%04x - %r\n", BootOptionIndex, Status));
     FreePool (BootOption);
   }
 
